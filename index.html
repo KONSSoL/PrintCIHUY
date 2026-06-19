@@ -1450,7 +1450,7 @@ input[type=date].hdp{position:absolute;opacity:0;pointer-events:none;width:0;hei
 
   <div class="card" style="background:rgba(255,190,68,0.07);border-color:rgba(255,190,68,0.18)">
     <div class="sl" style="color:var(--amber)"><i class="ti ti-info-circle"></i> Info</div>
-    <p style="font-size:12px;color:rgba(255,210,100,0.75);line-height:1.65">Data tersimpan di <strong>localStorage</strong> browser. Backup JSON disarankan setiap minggu, terutama sebelum clear cache atau ganti HP. File JSON hanya bisa di-restore di halaman ini.</p>
+    <p style="font-size:12px;color:rgba(255,210,100,0.75);line-height:1.65">Data catatan tersimpan di <strong>localStorage</strong> browser. Gambar (foto WA/Email) tersimpan di <strong>IndexedDB</strong> browser — kapasitas jauh lebih besar, tidak ada batas 5MB. Backup JSON menyertakan semua gambar sekaligus. Disarankan backup setiap minggu, terutama sebelum clear cache atau ganti perangkat.</p>
   </div>
 </div>
 <!-- Edit entri modal -->
@@ -1626,7 +1626,138 @@ function fmt(n){return'Rp '+n.toLocaleString('id-ID');}
 function todayStr(){return new Date().toISOString().split('T')[0];}
 function fmtLbl(d){const t=todayStr(),y=new Date();y.setDate(y.getDate()-1);if(d===t)return'Hari ini';if(d===y.toISOString().split('T')[0])return'Kemarin';return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
 function fmtFull(d){return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
-function save(){localStorage.setItem('pce_v5',JSON.stringify(entries));}
+// ═══════════════════════════════════════════════════════════════
+// PENYIMPANAN GAMBAR — IndexedDB (imgStore)
+//
+// Masalah sebelumnya: gambar base64 disimpan LANGSUNG di dalam
+// entries di localStorage. Satu foto ~500KB–1.5MB, localStorage
+// hanya 5MB total → setelah 4–5 foto, save() GAGAL diam-diam.
+// Entry tampak masuk ke riwayat (data masih di memori JS) tapi
+// hilang saat refresh karena tidak pernah benar-benar tersimpan.
+//
+// Solusi: gambar disimpan di IndexedDB (tidak ada batas 5MB,
+// bisa puluhan MB). Entry di localStorage hanya menyimpan imgId
+// (string pendek), bukan base64 yang besar.
+// ═══════════════════════════════════════════════════════════════
+let _imgDB=null;
+function openImgDB(){
+  if(_imgDB)return Promise.resolve(_imgDB);
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open('pce_images',1);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('images'))db.createObjectStore('images');
+    };
+    req.onsuccess=e=>{_imgDB=e.target.result;res(_imgDB);};
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+// Simpan gambar ke IndexedDB, kembalikan imgId unik
+async function saveImg(base64){
+  const db=await openImgDB();
+  const id='img_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('images','readwrite');
+    tx.objectStore('images').put(base64,id);
+    tx.oncomplete=()=>res(id);
+    tx.onerror=e=>rej(e.target.error);
+  });
+}
+// Baca gambar dari IndexedDB by imgId
+async function loadImg(id){
+  if(!id)return null;
+  // Support entry lama yang masih simpan base64 langsung (bukan imgId)
+  if(id.startsWith('data:'))return id;
+  try{
+    const db=await openImgDB();
+    return new Promise((res,rej)=>{
+      const tx=db.transaction('images','readonly');
+      const req=tx.objectStore('images').get(id);
+      req.onsuccess=e=>res(e.target.result||null);
+      req.onerror=e=>rej(e.target.error);
+    });
+  }catch(e){return null;}
+}
+// Hapus gambar dari IndexedDB
+async function deleteImg(id){
+  if(!id||id.startsWith('data:'))return;
+  try{
+    const db=await openImgDB();
+    const tx=db.transaction('images','readwrite');
+    tx.objectStore('images').delete(id);
+  }catch(e){}
+}
+// Baca SEMUA gambar (untuk export backup JSON)
+async function loadAllImgs(){
+  try{
+    const db=await openImgDB();
+    return new Promise((res,rej)=>{
+      const tx=db.transaction('images','readonly');
+      const store=tx.objectStore('images');
+      const result={};
+      const cur=store.openCursor();
+      cur.onsuccess=e=>{
+        const c=e.target.result;
+        if(c){result[c.key]=c.value;c.continue();}
+        else res(result);
+      };
+      cur.onerror=e=>rej(e.target.error);
+    });
+  }catch(e){return {};}
+}
+// Hapus semua gambar dari IndexedDB (untuk clearAllData)
+async function clearAllImgs(){
+  try{
+    const db=await openImgDB();
+    const tx=db.transaction('images','readwrite');
+    tx.objectStore('images').clear();
+  }catch(e){}
+}
+
+// ── Migrasi entry lama: imgData base64 → IndexedDB ──
+// Entry yang dibuat sebelum versi ini masih punya entry.imgData (base64 langsung).
+// Saat pertama kali app dibuka, kita pindahkan ke IndexedDB dan hapus dari entry,
+// supaya localStorage langsung lega tanpa user harus melakukan apapun.
+async function migrateOldImgData(){
+  let changed=false;
+  for(const e of entries){
+    if(e.imgData&&!e.imgData.startsWith('img_')){
+      // Ini base64 lama — pindahkan ke IndexedDB
+      try{
+        const id=await saveImg(e.imgData);
+        e.imgId=id;
+        delete e.imgData;
+        changed=true;
+      }catch(err){}
+    }
+  }
+  if(changed){save();console.log('[pce] migrasi imgData lama selesai');}
+}
+
+function save(){
+  // Guard: pastikan tidak ada base64 besar yang ikut tersimpan ke localStorage
+  // (imgId boleh, imgData base64 tidak)
+  const safe=entries.map(e=>{
+    if(e.imgData&&!e.imgData.startsWith('img_')){
+      // Masih ada base64 yang belum sempat dimigrasi — simpan tanpa imgData
+      // supaya localStorage tidak meledak. Gambar akan hilang dari entry ini
+      // tapi setidaknya entry lain tidak ikut terhapus.
+      const {imgData,...rest}=e;
+      return rest;
+    }
+    return e;
+  });
+  try{
+    localStorage.setItem('pce_v5',JSON.stringify(safe));
+  }catch(err){
+    // localStorage penuh — coba hapus gambar inline lama yang mungkin masih ada
+    console.warn('[pce] localStorage penuh, mencoba bersihkan...',err);
+    const minimal=safe.map(({imgData,...r})=>r);
+    try{localStorage.setItem('pce_v5',JSON.stringify(minimal));}catch(e2){
+      showToast('⚠ Penyimpanan penuh! Backup data sekarang.');
+    }
+  }
+}
 
 // ── State ──
 let selPrints=new Map(), selCust=null;
@@ -1634,10 +1765,14 @@ let selRejPapers=new Set(), selCauses=[], selRtype=null;
 let curFilter='all';
 let activeDate=todayStr(), rejDate=todayStr();
 let entries=JSON.parse(localStorage.getItem('pce_v5')||'[]');
-let curImgData=null; // base64 data URL of uploaded order image
+let curImgData=null;  // base64 sementara di memori (TIDAK disimpan ke entry)
+let curImgId=null;    // imgId hasil saveImg() ke IndexedDB — INI yang disimpan ke entry
 
-// Migrate old
+// Migrate old key formats
 ['pce_v4','printEntries_v3'].forEach(k=>{const d=localStorage.getItem(k);if(d&&!entries.length){try{const o=JSON.parse(d);entries=o.map(e=>({...e,type:e.isReject?'reject':'print',id:e.id||Date.now()+Math.random()}));save();}catch(x){}}});
+
+// Jalankan migrasi gambar lama ke IndexedDB di background (tidak blocking)
+setTimeout(()=>migrateOldImgData(),1000);
 
 // ── Nav ──
 function showPage(id,btn){
@@ -1790,6 +1925,7 @@ function removeImg(ev){
   valAddBtn();
 }
 function removeImgData(){
+  if(curImgId){deleteImg(curImgId);curImgId=null;}
   curImgData=null;
   document.getElementById('imgFileIn').value='';
   document.getElementById('imgEmpty').style.display='flex';
@@ -1841,9 +1977,22 @@ function imgDrop(e){
 function applyImageFile(file,name,src){
   if(file.size>8*1024*1024){showToast('⚠ Gambar terlalu besar (maks 8MB)');return;}
   const reader=new FileReader();
-  reader.onload=function(ev){
-    curImgData=ev.target.result;
-    document.getElementById('imgThumb').src=curImgData;
+  reader.onload=async function(ev){
+    const base64=ev.target.result;
+    curImgData=base64; // tetap simpan di memori untuk preview UI
+    // Simpan gambar ke IndexedDB sekarang (async, non-blocking)
+    // sehingga saat addPrint() nanti, imgId sudah siap
+    try{
+      const oldId=curImgId;
+      curImgId=await saveImg(base64);
+      if(oldId)deleteImg(oldId); // hapus gambar sebelumnya dari IndexedDB kalau ganti
+    }catch(err){
+      console.warn('[pce] gagal simpan gambar ke IndexedDB:',err);
+      curImgId=null; // fallback: entry akan tersimpan tanpa gambar
+      showToast('⚠ Gambar gagal disimpan — coba lagi');
+      return;
+    }
+    document.getElementById('imgThumb').src=base64;
     document.getElementById('imgFileName').textContent=name||file.name||'gambar';
     document.getElementById('imgFileSize').textContent=formatBytes(file.size);
     document.getElementById('imgEmpty').style.display='none';
@@ -1942,14 +2091,13 @@ function addPrint(){
   const note=document.getElementById('noteIn').value.trim();
   const time=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
   const toAdd=[];let totalRev=0;
-  // Generate batchId hanya kalau multi-jenis
   const batchId=selPrints.size>1?'b'+Date.now():null;
-  const imgData=curImgData||null; // attach same image to all entries in this session
+  const imgId=curImgId||null; // ID referensi ke IndexedDB — kecil, aman di localStorage
   selPrints.forEach((data,key)=>{
     const el=data.el,qty=data.qty,rev=calcPrice(key,qty),rate=getRate(key,qty);
     const entry={id:Date.now()+toAdd.length,type:'print',date:activeDate,paper:el.dataset.paper,cc:el.dataset.cc,cl:el.dataset.cl,key,qty,rev,rate,cust:selCust.dataset.cust,note,time};
     if(batchId)entry.batchId=batchId;
-    if(imgData)entry.imgData=imgData;
+    if(imgId)entry.imgId=imgId; // hanya ID, bukan base64 besar
     toAdd.push(entry);
     totalRev+=rev;
   });
@@ -1959,7 +2107,12 @@ function addPrint(){
   document.querySelectorAll('#pg-input .pc').forEach(c=>{c.classList.remove('s-bw','s-clr','s-photo');if(c.dataset.cc==='photo')c.classList.add('lock');});
   selPrints.clear();selCust=null;
   document.querySelectorAll('.cc').forEach(c=>c.classList.remove('s-cust'));
-  removeImgData();
+  // Reset gambar di memori tapi JANGAN hapus dari IndexedDB — gambar sudah terikat ke entry
+  curImgData=null;curImgId=null;
+  document.getElementById('imgFileIn').value='';
+  document.getElementById('imgEmpty').style.display='flex';
+  document.getElementById('imgPreview').style.display='none';
+  const zone=document.getElementById('imgZone');if(zone)zone.classList.remove('has-img','required-hint');
   document.getElementById('imgUploadSection').style.display='none';
   renderQtyRows();upp();valAddBtn();updateCustCounts();
   const lbl=toAdd.length===1?toAdd[0].paper+' '+toAdd[0].cl:toAdd.length+' jenis';
@@ -2219,10 +2372,10 @@ function renderHistory(){
           <div class="hi-tags" style="margin-top:4px">
             ${rep.cust?`<span class="hi-tag tag-c"><i class="ti ${custIco[rep.cust]||'ti-dots'}" style="font-size:9px"></i> ${rep.cust}</span>`:''}
             <span class="hi-tag" style="background:rgba(167,139,255,0.15);color:var(--purple);border:1px solid rgba(167,139,255,0.2)">${items.length} jenis</span>
-            ${rep.imgData?`<span class="hi-tag img-tag"><i class="ti ti-photo" style="font-size:9px"></i> Foto</span>`:''}
+            ${(rep.imgData||rep.imgId)?`<span class="hi-tag img-tag"><i class="ti ti-photo" style="font-size:9px"></i> Foto</span>`:''}
           </div>
         </div>
-        ${rep.imgData&&!msMode?`<img class="hi-batch-img" src="${rep.imgData}" alt="pesanan" onclick="openLb('${rep.id}')" loading="lazy">`:''}
+        ${(rep.imgData||rep.imgId)&&!msMode?`<img class="hi-batch-img" data-imgid="${rep.imgId||rep.imgData}" src="" alt="pesanan" onclick="openLb('${rep.id}')" loading="lazy">`:''}
         ${msMode?'':`<button class="hi-del" style="align-self:center" onclick="delBatch('${batch.batchId}')"><i class="ti ti-trash"></i></button>`}
         </div>`;
       } else {
@@ -2231,7 +2384,7 @@ function renderHistory(){
         if(e.type==='print'){
           const ic={bw:'bw',clr:'clr',photo:'photo'}[e.cc]||'bw';
           const ico=e.paper==='4R'?'ti-photo':'ti-file';
-          const imgTag=e.imgData?`<span class="hi-tag img-tag"><i class="ti ti-photo" style="font-size:9px"></i> Foto</span>`:'';
+          const imgTag=(e.imgData||e.imgId)?`<span class="hi-tag img-tag"><i class="ti ti-photo" style="font-size:9px"></i> Foto</span>`:'';
           h+=`<div class="hi${msMode&&msIds.has(e.id)?' ms-sel':''}" data-eid="${e.id}" style="animation-delay:${delay}s;animation:fadeUp .3s cubic-bezier(.22,1,.36,1) both ${delay}s">
             ${msMode?`<div class="hi-cb"><i class="ti ti-check"></i></div>`:`<div class="hi-ico ${ic}"><i class="ti ${ico}"></i></div>`}
             <div class="hi-info">
@@ -2239,7 +2392,7 @@ function renderHistory(){
               <div class="hi-sub">${e.time}${e.note?' · '+e.note:''}</div>
               <div class="hi-tags">${e.cust?`<span class="hi-tag tag-c"><i class="ti ${custIco[e.cust]||'ti-dots'}" style="font-size:9px"></i> ${e.cust}</span>`:''} ${imgTag}</div>
             </div>
-            ${e.imgData&&!msMode?`<img class="hi-img" src="${e.imgData}" alt="pesanan" onclick="openLb('${e.id}')" loading="lazy">`:''}
+            ${(e.imgData||e.imgId)&&!msMode?`<img class="hi-img" data-imgid="${e.imgId||e.imgData}" src="" alt="pesanan" onclick="openLb('${e.id}')" loading="lazy">`:''}
             <div class="hi-right"><div class="hi-qty">${e.qty.toLocaleString('id-ID')} lbr</div><div class="hi-rev">${fmt(e.rev)}</div></div>
             ${msMode?'':`<button class="hi-del" onclick="delEntry(${e.id})"><i class="ti ti-trash"></i></button>`}
           </div>`;
@@ -2266,6 +2419,19 @@ function renderHistory(){
   list.innerHTML=h;
   const hc=document.getElementById('histCount');if(hc)hc.textContent=fil.length?fil.length+' entri':'';
   setTimeout(observeAll,30);
+  // Isi gambar dari IndexedDB secara async setelah DOM ter-render
+  loadImgsIntoDOM(list);
+}
+
+// ── Lazy-load gambar dari IndexedDB ke img[data-imgid] yang baru di-render ──
+async function loadImgsIntoDOM(container){
+  const imgs=(container||document).querySelectorAll('img[data-imgid]');
+  for(const img of imgs){
+    const id=img.getAttribute('data-imgid');
+    if(!id||img.src)continue;
+    const src=await loadImg(id);
+    if(src)img.src=src;
+  }
 }
 
 // ── Delete batch (multi-jenis 1 sesi) ──
@@ -2580,13 +2746,19 @@ function exportRingkasanTxt(){
 }
 
 // ── Lightbox ──
-function openLb(entryId){
+async function openLb(entryId){
   const e=entries.find(x=>String(x.id)===String(entryId));
-  if(!e||!e.imgData)return;
-  document.getElementById('lbImg').src=e.imgData;
+  const imgRef=e&&(e.imgId||e.imgData);
+  if(!e||!imgRef)return;
+  const lbImg=document.getElementById('lbImg');
+  lbImg.src=''; // reset dulu
   document.getElementById('lbMeta').textContent=(e.paper?e.paper+' '+e.cl+' · ':'')+fmtLbl(e.date)+' '+e.time+(e.note?' · '+e.note:'');
   document.getElementById('lbOv').classList.add('show');
   document.body.style.overflow='hidden';
+  // Load gambar async — tampilkan loading indicator sementara
+  const src=await loadImg(imgRef);
+  if(src)lbImg.src=src;
+  else{closeLb();showToast('⚠ Gambar tidak ditemukan');}
 }
 function closeLb(){
   document.getElementById('lbOv').classList.remove('show');
@@ -2775,11 +2947,15 @@ function renderBackupStats(){
     <div class="bkp-sc"><div class="bkp-sv" style="color:var(--amber);font-size:13px">${fmt(rev)}</div><div class="bkp-sl">Total Rev</div></div>
   `;
 }
-function exportBackup(){
+async function exportBackup(){
   if(!entries.length){showToast('Tidak ada data untuk di-backup');return;}
-  const payload={version:'pce_backup_v1',exported:new Date().toISOString(),count:entries.length,entries};
+  showToast('⏳ Menyiapkan backup + gambar...');
+  // Sertakan semua gambar dari IndexedDB dalam backup
+  // agar data tidak hilang walau browser di-clear atau ganti device
+  const images=await loadAllImgs();
+  const payload={version:'pce_backup_v2',exported:new Date().toISOString(),count:entries.length,entries,images};
   dl(JSON.stringify(payload,null,2),'application/json','backup-cetak-'+todayStr()+'.json');
-  showToast('✅ Backup JSON berhasil disimpan — '+entries.length+' entri');
+  showToast('✅ Backup JSON berhasil — '+entries.length+' entri + '+ Object.keys(images).length+' gambar');
 }
 function handleRestoreFile(input){
   const file=input.files[0];if(!file)return;
@@ -2790,15 +2966,15 @@ function handleRestoreFile(input){
       const raw=JSON.parse(ev.target.result);
       const arr=raw.entries||raw;
       if(!Array.isArray(arr)||!arr.length){showToast('❌ File tidak valid atau kosong');return;}
-      // Validate minimal structure
       const valid=arr.every(e=>e.id&&e.type&&e.date);
       if(!valid){showToast('❌ Format file tidak dikenali');return;}
-      _restoreData=arr;
+      _restoreData={entries:arr,images:raw.images||{}};
       const newCount=arr.filter(n=>!entries.find(e=>e.id===n.id)).length;
       const dupCount=arr.length-newCount;
+      const imgCount=Object.keys(raw.images||{}).length;
       document.getElementById('restoreModalTtl').textContent='Restore '+arr.length+' Entri';
       document.getElementById('restoreModalMsg').textContent=
-        `File berisi ${arr.length} entri (${newCount} baru, ${dupCount} duplikat).\n\n` +
+        `File berisi ${arr.length} entri (${newCount} baru, ${dupCount} duplikat)${imgCount?' + '+imgCount+' gambar':''}.\n\n` +
         `• Gabung — tambahkan entri baru, abaikan duplikat\n` +
         `• Ganti — hapus semua data lama, ganti dengan file ini`;
       document.getElementById('restoreModal').classList.add('show');
@@ -2810,14 +2986,26 @@ function closeRestoreModal(){
   document.getElementById('restoreModal').classList.remove('show');
   _restoreData=null;
 }
-function doRestore(mode){
+async function doRestore(mode){
   if(!_restoreData)return;
+  const {entries:arr,images}=_restoreData;
   if(mode==='replace'){
-    entries=_restoreData.map(e=>({...e,id:Number(e.id)||e.id}));
+    entries=arr.map(e=>({...e,id:Number(e.id)||e.id}));
+    await clearAllImgs();
   } else {
     const existIds=new Set(entries.map(e=>e.id));
-    const toAdd=_restoreData.filter(e=>!existIds.has(e.id)&&!existIds.has(Number(e.id)));
+    const toAdd=arr.filter(e=>!existIds.has(e.id)&&!existIds.has(Number(e.id)));
     entries=[...toAdd,...entries];
+  }
+  // Restore gambar ke IndexedDB
+  if(images&&Object.keys(images).length){
+    try{
+      const db=await openImgDB();
+      const tx=db.transaction('images','readwrite');
+      const store=tx.objectStore('images');
+      Object.entries(images).forEach(([id,b64])=>store.put(b64,id));
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=e=>rej(e.target.error);});
+    }catch(e){console.warn('[pce] gagal restore gambar:',e);}
   }
   save();
   closeRestoreModal();
@@ -2830,6 +3018,7 @@ function clearAllData(){
     'Seluruh '+entries.length+' entri akan dihapus permanen. Pastikan sudah backup JSON terlebih dahulu.',
     ()=>{
       entries=[];save();
+      clearAllImgs(); // juga hapus semua gambar dari IndexedDB
       renderHistory();renderStats();updateBadges();updateBanner();updateCustCounts();renderBackupStats();
       showToast('🗑️ Semua data dihapus');
     }
