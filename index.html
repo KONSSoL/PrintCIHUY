@@ -2225,6 +2225,8 @@ function routePdfFile(file){
 async function analyzePdf(file){
   showPdfState('analyzing');
   setPdfProgress(0,'Memuat pustaka PDF...');
+
+  // ── Load PDF.js dari CDN (sekali saja, di-cache ke _pdfjsLib) ──
   try{
     if(!_pdfjsLib){
       _pdfjsLib=await import(PDFJS_BASE+'pdf.min.mjs');
@@ -2232,19 +2234,63 @@ async function analyzePdf(file){
     }
   }catch(err){
     console.warn('[pce] gagal load pdf.js:',err);
-    showToast('⚠ Gagal memuat pustaka PDF — cek koneksi internet');
-    showPdfState('upload');
+    // CDN gagal — tawarkan fallback mode manual supaya tetap bisa dipakai
+    _pdfMode='docx';
+    _pdfFileName=file.name;
+    document.getElementById('pdfSubTtl').textContent='Gagal muat PDF.js — isi manual';
+    document.getElementById('pdfDocxName').textContent=file.name;
+    document.getElementById('pdfManualTotal').value=1;
+    document.getElementById('pdfManualColor').value=0;
+    onPdfManualChange();
+    document.getElementById('pdfDocxFields').style.display='block';
+    document.getElementById('pdfResultsFields').style.display='none';
+    showPdfState('confirm');
+    showToast('⚠ Pustaka PDF gagal dimuat — isi manual ya (cek internet)');
     return;
   }
+
+  // ── Buka dokumen PDF ──
   let pdf;
   try{
     const buf=await file.arrayBuffer();
-    pdf=await _pdfjsLib.getDocument({data:buf}).promise;
+    // Nonaktifkan range request agar seluruh file langsung diproses dari buffer
+    pdf=await _pdfjsLib.getDocument({
+      data:buf,
+      disableRange:true,
+      disableStream:true,
+      disableAutoFetch:true,
+    }).promise;
   }catch(err){
-    showToast('⚠ File PDF tidak valid atau rusak');
+    const msg=err&&err.name;
+    const code=err&&err.code;
+    // pdf.js melempar PasswordException (code 1=salah/butuh password, code 2=wrong password)
+    // PasswordResponses: NEED_PASSWORD=1, INCORRECT_PASSWORD=2
+    if(msg==='PasswordException'||code===1||code===2||
+       (err&&err.message&&err.message.toLowerCase().includes('password'))){
+      // PDF terpassword → alihkan ke mode manual, user tahu isi filenya sendiri
+      _pdfMode='docx';
+      _pdfFileName=file.name;
+      document.getElementById('pdfSubTtl').textContent='PDF terproteksi — isi manual';
+      document.getElementById('pdfDocxName').textContent=file.name;
+      document.getElementById('pdfManualTotal').value=1;
+      document.getElementById('pdfManualColor').value=0;
+      onPdfManualChange();
+      document.getElementById('pdfDocxFields').style.display='block';
+      document.getElementById('pdfResultsFields').style.display='none';
+      // Tampilkan info box yang menjelaskan situasi ini
+      document.querySelector('#pdfDocxFields .pdf-info-box').innerHTML=
+        '<i class="ti ti-lock"></i>PDF ini dilindungi password — tidak bisa dibaca otomatis. Cek jumlah halaman di Adobe Reader atau aplikasi lain, lalu isi di bawah ini.';
+      showPdfState('confirm');
+      showToast('🔒 PDF terproteksi — isi jumlah halaman manual');
+      return;
+    }
+    // Error lain: PDF rusak, format tidak dikenal, dll
+    console.warn('[pce] getDocument gagal:',err);
+    showToast('⚠ File PDF tidak bisa dibaca — mungkin rusak atau format tidak standar');
     showPdfState('upload');
     return;
   }
+
   const numPages=pdf.numPages;
   if(numPages>300){
     showToast('⚠ PDF terlalu banyak halaman (maks 300)');
@@ -2254,7 +2300,7 @@ async function analyzePdf(file){
   _pdfPages=[];
   const canvas=document.createElement('canvas');
   const cctx=canvas.getContext('2d',{willReadFrequently:true});
-  const THUMB_W=110; // cukup besar untuk thumbnail jelas, cukup kecil untuk cepat dianalisis
+  const THUMB_W=110;
 
   for(let i=1;i<=numPages;i++){
     setPdfProgress(Math.round((i-1)/numPages*100),`Menganalisis halaman ${i} dari ${numPages}...`);
