@@ -876,6 +876,100 @@ input[type=date].hdp{position:absolute;opacity:0;pointer-events:none;width:0;hei
 .tb-lbl{font-size:9px;color:rgba(255,255,255,.38);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
 .tb-div{width:1px;height:36px;background:rgba(255,255,255,.10)}
 
+/* ═══ PDF/FILE ANALYZER FEATURE ═══ */
+.pdf-trigger{
+  display:flex;align-items:center;gap:13px;margin-bottom:14px;padding:14px 16px;
+  background:linear-gradient(135deg,rgba(91,159,255,0.10),rgba(167,139,255,0.08));
+  border:1px solid rgba(91,159,255,0.22);border-radius:var(--r-xl);
+  cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s,background .15s;
+}
+.pdf-trigger:active{transform:scale(.98);background:rgba(91,159,255,0.16)}
+.pdf-trigger-ico{
+  width:42px;height:42px;border-radius:var(--r-lg);flex-shrink:0;
+  background:rgba(91,159,255,0.16);border:1px solid rgba(91,159,255,0.25);
+  display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--blue);
+}
+.pdf-trigger-info{flex:1;min-width:0}
+.pdf-trigger-title{font-size:13px;font-weight:800;color:var(--text)}
+.pdf-trigger-sub{font-size:11px;color:var(--text3);margin-top:2px;font-weight:500}
+
+/* Modal box override for the analyzer (needs more width/height than confirm dialogs) */
+#pdfBox{max-width:560px;max-height:88vh;overflow-y:auto}
+
+.pdf-spinner{
+  width:42px;height:42px;border-radius:50%;margin:0 auto;
+  border:3px solid rgba(91,159,255,0.15);border-top-color:var(--blue);
+  animation:pdfspin .8s linear infinite;
+}
+@keyframes pdfspin{to{transform:rotate(360deg)}}
+.pdf-progress-track{
+  width:100%;height:6px;border-radius:6px;background:rgba(255,255,255,0.08);
+  margin-top:16px;overflow:hidden;
+}
+.pdf-progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:6px;width:0%;transition:width .25s ease}
+
+.pdf-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;
+}
+.pdf-sum-card{
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);
+  border-radius:var(--r-lg);padding:12px 8px;text-align:center;
+}
+.pdf-sum-val{font-size:19px;font-weight:800;font-family:'Roboto Mono',monospace;letter-spacing:-.5px}
+.pdf-sum-lbl{font-size:9px;color:var(--text3);margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+
+.pdf-thumb-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;
+  max-height:280px;overflow-y:auto;padding:4px;margin-bottom:16px;
+  background:rgba(0,0,0,0.15);border-radius:var(--r-lg);border:1px solid rgba(255,255,255,0.06);
+}
+.pdf-thumb{
+  position:relative;aspect-ratio:3/4.2;border-radius:8px;overflow:hidden;cursor:pointer;
+  border:2px solid transparent;background:#1a1830;-webkit-tap-highlight-color:transparent;
+  transition:border-color .15s;
+}
+.pdf-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pdf-thumb-badge{
+  position:absolute;bottom:0;left:0;right:0;padding:2px 0;text-align:center;
+  font-size:8px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+}
+.pdf-thumb-badge.bw{background:rgba(20,20,30,0.85);color:rgba(255,255,255,0.75)}
+.pdf-thumb-badge.clr{background:rgba(91,159,255,0.85);color:#fff}
+.pdf-thumb-num{
+  position:absolute;top:2px;left:3px;font-size:8px;font-weight:800;color:rgba(255,255,255,0.55);
+  text-shadow:0 1px 2px rgba(0,0,0,0.8);
+}
+.pdf-thumb.is-clr{border-color:rgba(91,159,255,0.45)}
+.pdf-thumb-hint{font-size:10px;color:var(--text3);text-align:center;margin:-10px 0 14px;font-style:italic}
+
+.pdf-opt-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.pdf-opt-lbl{font-size:12px;font-weight:700;color:var(--text2)}
+.pdf-tabbar{display:flex;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:var(--r-md);padding:3px;gap:3px;width:fit-content}
+.pdf-tabbtn{padding:7px 16px;border:none;background:transparent;border-radius:8px;font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .2s}
+.pdf-tabbtn.active{background:var(--blue);color:#fff}
+
+.pdf-info-box{
+  background:rgba(255,190,68,0.07);border:1px solid rgba(255,190,68,0.18);border-radius:var(--r-lg);
+  padding:13px 14px;margin-bottom:16px;font-size:12px;color:rgba(255,210,100,0.85);line-height:1.6;
+}
+.pdf-info-box i{color:var(--amber);margin-right:4px}
+.pdf-manual-row{margin-bottom:14px}
+.pdf-manual-lbl{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;display:block}
+.pdf-manual-inp{
+  width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
+  border-radius:var(--r-md);padding:11px 14px;color:var(--text);font-size:15px;font-weight:700;
+  font-family:'Roboto Mono',monospace;
+}
+.pdf-manual-inp:focus{outline:none;border-color:var(--blue)}
+
+.pdf-filename{
+  display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);
+  background:rgba(255,255,255,0.05);border-radius:var(--r-md);padding:9px 12px;margin-bottom:16px;
+  overflow:hidden;
+}
+.pdf-filename span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.pdf-filename i{color:var(--text3);flex-shrink:0}
+
 /* BATCH HISTORY CARD */
 .hi-batch{
   background:rgba(255,255,255,0.08);
@@ -1091,6 +1185,15 @@ input[type=date].hdp{position:absolute;opacity:0;pointer-events:none;width:0;hei
     <div class="tb-item"><div class="tb-val teal" id="tb-rev">Rp 0</div><div class="tb-lbl">Pendapatan</div></div>
     <div class="tb-div"></div>
     <div class="tb-item"><div class="tb-val" id="tb-rej">0</div><div class="tb-lbl">Reject</div></div>
+  </div>
+
+  <div class="pdf-trigger anim-fadeup d3" onclick="openPdfAnalyzer()">
+    <div class="pdf-trigger-ico"><i class="ti ti-file-search"></i></div>
+    <div class="pdf-trigger-info">
+      <div class="pdf-trigger-title">Hitung Otomatis dari File</div>
+      <div class="pdf-trigger-sub">Upload PDF — sistem hitung halaman & warna otomatis</div>
+    </div>
+    <i class="ti ti-chevron-right" style="color:var(--text3);font-size:16px"></i>
   </div>
 
   <div class="card anim-fadeup d3">
@@ -1500,6 +1603,93 @@ input[type=date].hdp{position:absolute;opacity:0;pointer-events:none;width:0;hei
   </div>
 </div>
 
+<!-- File Analyzer Modal (PDF/Word → hitung halaman & warna otomatis) -->
+<div class="edit-ov" id="pdfModal" onclick="if(event.target===this)closePdfAnalyzer()">
+  <div class="edit-box" id="pdfBox">
+    <div class="edit-hdl"></div>
+    <div class="edit-ttl"><i class="ti ti-file-search"></i> Hitung Otomatis dari File</div>
+    <div class="edit-sub" id="pdfSubTtl">Upload PDF untuk hitung jumlah halaman & warna otomatis</div>
+
+    <!-- STATE 1: Upload dropzone -->
+    <div id="pdfStateUpload">
+      <input type="file" id="pdfFileIn" accept=".pdf,.doc,.docx" style="display:none" onchange="onPdfFileSelected(this)">
+      <div class="img-zone" id="pdfDropZone" onclick="document.getElementById('pdfFileIn').click()"
+           ondragover="pdfDragOver(event)" ondragleave="pdfDragLeave(event)" ondrop="pdfDrop(event)" style="min-height:130px">
+        <div class="img-zone-empty">
+          <div class="img-zone-ico" style="width:46px;height:46px"><i class="ti ti-file-upload" style="font-size:22px;color:var(--text2)"></i></div>
+          <div class="img-zone-title">Upload PDF atau Word</div>
+          <div class="img-zone-sub">PDF: hitung otomatis & akurat<br>Word: perlu konfirmasi manual</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE 2: Analyzing -->
+    <div id="pdfStateAnalyzing" style="display:none;padding:20px 0 8px;text-align:center">
+      <div class="pdf-spinner"></div>
+      <div style="margin-top:14px;font-size:13px;font-weight:700" id="pdfProgressText">Membaca file...</div>
+      <div class="pdf-progress-track"><div class="pdf-progress-bar" id="pdfProgressBar"></div></div>
+    </div>
+
+    <!-- STATE 3: Konfirmasi (Word manual ATAU hasil PDF) -->
+    <div id="pdfStateConfirm" style="display:none">
+      <!-- Sub-blok khusus Word: input manual -->
+      <div id="pdfDocxFields" style="display:none">
+        <div class="pdf-filename"><i class="ti ti-file-text"></i><span id="pdfDocxName"></span></div>
+        <div class="pdf-info-box">
+          <i class="ti ti-info-circle"></i>Jumlah halaman dokumen Word tergantung font, margin, dan ukuran kertas saat dicetak — tidak bisa dibaca akurat dari filenya saja. Cek jumlah halaman di Word/aplikasi pembuka file, lalu isi manual di bawah. Untuk hasil paling akurat, export dulu ke PDF.
+        </div>
+        <div class="pdf-manual-row">
+          <label class="pdf-manual-lbl">Total Halaman</label>
+          <input type="number" class="pdf-manual-inp" id="pdfManualTotal" min="1" max="9999" value="1" oninput="onPdfManualChange()">
+        </div>
+        <div class="pdf-manual-row">
+          <label class="pdf-manual-lbl">Berapa Halaman yang Berwarna?</label>
+          <input type="number" class="pdf-manual-inp" id="pdfManualColor" min="0" max="9999" value="0" oninput="onPdfManualChange()">
+        </div>
+        <div class="pdf-summary" id="pdfDocxSummary">
+          <div class="pdf-sum-card"><div class="pdf-sum-val" id="pdfDocxSumTotal">1</div><div class="pdf-sum-lbl">Halaman</div></div>
+          <div class="pdf-sum-card"><div class="pdf-sum-val" id="pdfDocxSumBw">1</div><div class="pdf-sum-lbl">Hitam Putih</div></div>
+          <div class="pdf-sum-card"><div class="pdf-sum-val" id="pdfDocxSumClr" style="color:var(--blue)">0</div><div class="pdf-sum-lbl">Warna</div></div>
+        </div>
+      </div>
+
+      <!-- Sub-blok khusus PDF: hasil analisis otomatis -->
+      <div id="pdfResultsFields" style="display:none">
+        <div class="pdf-filename"><i class="ti ti-file-type-pdf"></i><span id="pdfResultFilenameTxt"></span></div>
+        <div class="pdf-summary">
+          <div class="pdf-sum-card"><div class="pdf-sum-val" id="pdfSumTotal">0</div><div class="pdf-sum-lbl">Halaman</div></div>
+          <div class="pdf-sum-card"><div class="pdf-sum-val" id="pdfSumBw" style="color:var(--text)">0</div><div class="pdf-sum-lbl">Hitam Putih</div></div>
+          <div class="pdf-sum-card"><div class="pdf-sum-val" id="pdfSumClr" style="color:var(--blue)">0</div><div class="pdf-sum-lbl">Warna</div></div>
+        </div>
+        <div class="pdf-thumb-grid" id="pdfThumbGrid"></div>
+        <div class="pdf-thumb-hint">Tap halaman untuk koreksi kalau deteksi warnanya salah</div>
+      </div>
+
+      <!-- Opsi bersama: ukuran kertas + jumlah salinan -->
+      <div class="pdf-opt-row">
+        <span class="pdf-opt-lbl">Ukuran Kertas</span>
+        <div class="pdf-tabbar">
+          <button class="pdf-tabbtn active" id="pdfPaperA4" onclick="setPdfPaper('A4')">A4</button>
+          <button class="pdf-tabbtn" id="pdfPaperA3" onclick="setPdfPaper('A3')">A3</button>
+        </div>
+      </div>
+      <div class="pdf-opt-row">
+        <span class="pdf-opt-lbl">Jumlah Salinan (Copy)</span>
+        <div class="qctrl" style="width:auto">
+          <button class="qbtn" onclick="adjPdfCopies(-1)">−</button>
+          <input class="qnum" type="number" id="pdfCopies" value="1" min="1" max="999" style="width:48px" oninput="onPdfCopiesInput(this)">
+          <button class="qbtn" onclick="adjPdfCopies(1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="edit-btns" id="pdfBtns" style="display:none">
+      <button class="edit-cancel" onclick="closePdfAnalyzer()">Batal</button>
+      <button class="edit-save" id="pdfApplyBtn" onclick="applyPdfResult()"><i class="ti ti-check" style="margin-right:5px"></i>Terapkan ke Form</button>
+    </div>
+  </div>
+</div>
+
 <!-- Restore mode modal -->
 <div class="modal-ov" id="restoreModal" onclick="if(event.target===this)closeRestoreModal()">
   <div class="modal-box">
@@ -1639,6 +1829,18 @@ function fmtFull(d){return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{w
 // bisa puluhan MB). Entry di localStorage hanya menyimpan imgId
 // (string pendek), bukan base64 yang besar.
 // ═══════════════════════════════════════════════════════════════
+// Polyfill untuk Map.prototype.getOrInsertComputed — dipakai internal oleh
+// pdf.js versi terbaru, tapi method ini masih sangat baru (proposal TC39)
+// dan belum tersedia di banyak browser/versi Chromium saat ini. Tanpa ini,
+// rendering PDF gagal total secara diam-diam dan salah dianggap "tidak ada
+// halaman yang gagal" padahal semua halaman gagal di-render.
+if(!Map.prototype.getOrInsertComputed){
+  Map.prototype.getOrInsertComputed=function(key,fn){
+    if(this.has(key))return this.get(key);
+    const v=fn(key);this.set(key,v);return v;
+  };
+}
+
 let _imgDB=null;
 function openImgDB(){
   if(_imgDB)return Promise.resolve(_imgDB);
@@ -1938,6 +2140,270 @@ function removeImgData(){
   }
 }
 function formatBytes(b){if(b<1024)return b+'B';if(b<1048576)return (b/1024).toFixed(0)+'KB';return (b/1048576).toFixed(1)+'MB';}
+
+// ═══════════════════════════════════════════════════════════════
+// FILE ANALYZER — hitung jumlah halaman & warna otomatis dari PDF
+//
+// PDF: dianalisis penuh otomatis pakai PDF.js — setiap halaman
+// di-render ke canvas kecil, lalu pixel-nya disampling untuk
+// mendeteksi ada warna atau tidak (bukan cuma hitam/putih/abu-abu).
+//
+// Word (.doc/.docx): TIDAK bisa dihitung akurat dari filenya saja
+// — jumlah halaman tergantung font/margin/printer driver yang
+// dipakai untuk merender, beda program bisa beda hasil. Daripada
+// kasih angka yang kelihatan presisi tapi sebenarnya bisa salah
+// (bisa bikin rugi/kemahalan), pengguna isi manual jumlah halaman
+// (yang mereka lihat sendiri di Word) + berapa yang berwarna.
+// ═══════════════════════════════════════════════════════════════
+const PDFJS_BASE='https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/build/';
+let _pdfjsLib=null;
+let _pdfMode=null;        // 'pdf' | 'docx'
+let _pdfPages=[];         // [{isColor, thumb}] — hasil analisis per halaman PDF
+let _pdfFileName='';
+let _pdfPaperSize='A4';   // 'A4' | 'A3'
+let _pdfManualTotal=1,_pdfManualColor=0; // untuk mode docx
+
+function openPdfAnalyzer(){
+  _pdfMode=null;_pdfPages=[];_pdfFileName='';_pdfPaperSize='A4';
+  document.getElementById('pdfFileIn').value='';
+  document.getElementById('pdfPaperA4').classList.add('active');
+  document.getElementById('pdfPaperA3').classList.remove('active');
+  document.getElementById('pdfCopies').value=1;
+  document.getElementById('pdfSubTtl').textContent='Upload PDF untuk hitung jumlah halaman & warna otomatis';
+  showPdfState('upload');
+  document.getElementById('pdfModal').classList.add('show');
+}
+function closePdfAnalyzer(){
+  document.getElementById('pdfModal').classList.remove('show');
+}
+function showPdfState(state){
+  document.getElementById('pdfStateUpload').style.display=state==='upload'?'block':'none';
+  document.getElementById('pdfStateAnalyzing').style.display=state==='analyzing'?'block':'none';
+  document.getElementById('pdfStateConfirm').style.display=state==='confirm'?'block':'none';
+  document.getElementById('pdfBtns').style.display=state==='confirm'?'flex':'none';
+}
+function setPdfProgress(pct,text){
+  const bar=document.getElementById('pdfProgressBar');if(bar)bar.style.width=pct+'%';
+  const txt=document.getElementById('pdfProgressText');if(txt)txt.textContent=text;
+}
+
+// ── Drag & drop ──
+function pdfDragOver(e){e.preventDefault();e.stopPropagation();document.getElementById('pdfDropZone').classList.add('drag-over');}
+function pdfDragLeave(e){e.preventDefault();e.stopPropagation();document.getElementById('pdfDropZone').classList.remove('drag-over');}
+function pdfDrop(e){
+  e.preventDefault();e.stopPropagation();
+  document.getElementById('pdfDropZone').classList.remove('drag-over');
+  const file=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(file)routePdfFile(file);
+}
+function onPdfFileSelected(input){
+  const file=input.files[0];if(!file)return;
+  routePdfFile(file);
+}
+function routePdfFile(file){
+  const name=file.name.toLowerCase();
+  if(name.endsWith('.pdf')){
+    _pdfMode='pdf';
+    analyzePdf(file);
+  } else if(name.endsWith('.doc')||name.endsWith('.docx')){
+    _pdfMode='docx';
+    _pdfFileName=file.name;
+    document.getElementById('pdfSubTtl').textContent='Word perlu konfirmasi manual jumlah halaman';
+    document.getElementById('pdfDocxName').textContent=file.name;
+    document.getElementById('pdfManualTotal').value=1;
+    document.getElementById('pdfManualColor').value=0;
+    onPdfManualChange();
+    document.getElementById('pdfDocxFields').style.display='block';
+    document.getElementById('pdfResultsFields').style.display='none';
+    showPdfState('confirm');
+  } else {
+    showToast('⚠ Format tidak didukung — gunakan PDF, DOC, atau DOCX');
+  }
+}
+
+// ── Analisis PDF (PDF.js) ──
+async function analyzePdf(file){
+  showPdfState('analyzing');
+  setPdfProgress(0,'Memuat pustaka PDF...');
+  try{
+    if(!_pdfjsLib){
+      _pdfjsLib=await import(PDFJS_BASE+'pdf.min.mjs');
+      _pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_BASE+'pdf.worker.min.mjs';
+    }
+  }catch(err){
+    console.warn('[pce] gagal load pdf.js:',err);
+    showToast('⚠ Gagal memuat pustaka PDF — cek koneksi internet');
+    showPdfState('upload');
+    return;
+  }
+  let pdf;
+  try{
+    const buf=await file.arrayBuffer();
+    pdf=await _pdfjsLib.getDocument({data:buf}).promise;
+  }catch(err){
+    showToast('⚠ File PDF tidak valid atau rusak');
+    showPdfState('upload');
+    return;
+  }
+  const numPages=pdf.numPages;
+  if(numPages>300){
+    showToast('⚠ PDF terlalu banyak halaman (maks 300)');
+    showPdfState('upload');
+    return;
+  }
+  _pdfPages=[];
+  const canvas=document.createElement('canvas');
+  const cctx=canvas.getContext('2d',{willReadFrequently:true});
+  const THUMB_W=110; // cukup besar untuk thumbnail jelas, cukup kecil untuk cepat dianalisis
+
+  for(let i=1;i<=numPages;i++){
+    setPdfProgress(Math.round((i-1)/numPages*100),`Menganalisis halaman ${i} dari ${numPages}...`);
+    try{
+      const page=await pdf.getPage(i);
+      const vp1=page.getViewport({scale:1});
+      const scale=THUMB_W/vp1.width;
+      const viewport=page.getViewport({scale});
+      canvas.width=Math.max(1,Math.ceil(viewport.width));
+      canvas.height=Math.max(1,Math.ceil(viewport.height));
+      cctx.fillStyle='#fff';cctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({canvasContext:cctx,viewport}).promise;
+      const imgData=cctx.getImageData(0,0,canvas.width,canvas.height).data;
+      const isColor=detectColorPage(imgData);
+      const thumb=canvas.toDataURL('image/jpeg',0.55);
+      _pdfPages.push({isColor,thumb});
+    }catch(err){
+      console.warn('[pce] gagal render halaman',i,err);
+      _pdfPages.push({isColor:false,thumb:''}); // fallback aman: anggap BW kalau gagal render
+    }
+    if(i%2===0)await new Promise(r=>setTimeout(r,0)); // beri jeda ke UI thread
+  }
+  setPdfProgress(100,'Selesai!');
+  _pdfFileName=file.name;
+  document.getElementById('pdfSubTtl').textContent='Hasil analisis — koreksi manual kalau perlu';
+  document.getElementById('pdfResultFilenameTxt').textContent=_pdfFileName;
+  document.getElementById('pdfDocxFields').style.display='none';
+  document.getElementById('pdfResultsFields').style.display='block';
+  renderPdfThumbGrid();
+  recomputePdfSummary();
+  showPdfState('confirm');
+}
+
+// Deteksi apakah satu halaman mengandung warna (bukan cuma hitam/putih/abu-abu).
+// Pixel abu-abu murni: R=G=B. Pixel berwarna: ada selisih jelas antar channel.
+// Threshold dipilih supaya noise JPEG/anti-aliasing pada scan B&W tidak
+// salah terdeteksi sebagai warna, tapi warna asli (termasuk yang pudar) tetap kena.
+function detectColorPage(data){
+  const SAT_THRESHOLD=24;     // selisih max(r,g,b)-min(r,g,b) di atas ini = "berwarna"
+  const WHITE_THRESHOLD=246;  // pixel nyaris putih dianggap background, dilewati
+  const MIN_COLOR_PIXELS=10;  // minimal sekian sample "berwarna" baru halaman dihitung warna (anti noise)
+  let colorCount=0;
+  const stride=16; // sample tiap 4 pixel (4 channel × 4 = 16 byte)
+  for(let p=0;p<data.length;p+=stride){
+    const r=data[p],g=data[p+1],b=data[p+2];
+    if(r>WHITE_THRESHOLD&&g>WHITE_THRESHOLD&&b>WHITE_THRESHOLD)continue;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b);
+    if(max-min>SAT_THRESHOLD){
+      colorCount++;
+      if(colorCount>=MIN_COLOR_PIXELS)return true;
+    }
+  }
+  return false;
+}
+
+function renderPdfThumbGrid(){
+  const grid=document.getElementById('pdfThumbGrid');if(!grid)return;
+  grid.innerHTML=_pdfPages.map((p,idx)=>`
+    <div class="pdf-thumb${p.isColor?' is-clr':''}" onclick="togglePdfPageColor(${idx})">
+      <span class="pdf-thumb-num">${idx+1}</span>
+      ${p.thumb?`<img src="${p.thumb}" alt="hal ${idx+1}" loading="lazy">`:''}
+      <div class="pdf-thumb-badge ${p.isColor?'clr':'bw'}">${p.isColor?'Warna':'B&W'}</div>
+    </div>`).join('');
+}
+function togglePdfPageColor(idx){
+  const p=_pdfPages[idx];if(!p)return;
+  p.isColor=!p.isColor;
+  renderPdfThumbGrid();
+  recomputePdfSummary();
+}
+function recomputePdfSummary(){
+  const total=_pdfPages.length;
+  const clr=_pdfPages.filter(p=>p.isColor).length;
+  const bw=total-clr;
+  document.getElementById('pdfSumTotal').textContent=total;
+  document.getElementById('pdfSumBw').textContent=bw;
+  document.getElementById('pdfSumClr').textContent=clr;
+}
+
+// ── Mode Word: input manual ──
+function onPdfManualChange(){
+  let total=Math.max(1,Math.min(9999,parseInt(document.getElementById('pdfManualTotal').value)||1));
+  let clr=Math.max(0,Math.min(9999,parseInt(document.getElementById('pdfManualColor').value)||0));
+  if(clr>total)clr=total;
+  document.getElementById('pdfManualTotal').value=total;
+  document.getElementById('pdfManualColor').value=clr;
+  _pdfManualTotal=total;_pdfManualColor=clr;
+  document.getElementById('pdfDocxSumTotal').textContent=total;
+  document.getElementById('pdfDocxSumBw').textContent=total-clr;
+  document.getElementById('pdfDocxSumClr').textContent=clr;
+}
+
+// ── Opsi bersama: ukuran kertas & jumlah salinan ──
+function setPdfPaper(size){
+  _pdfPaperSize=size;
+  document.getElementById('pdfPaperA4').classList.toggle('active',size==='A4');
+  document.getElementById('pdfPaperA3').classList.toggle('active',size==='A3');
+}
+function adjPdfCopies(d){
+  const inp=document.getElementById('pdfCopies');
+  let v=Math.max(1,Math.min(999,(parseInt(inp.value)||1)+d));
+  inp.value=v;
+}
+function onPdfCopiesInput(inp){
+  let v=parseInt(inp.value);if(isNaN(v)||v<1)v=1;if(v>999)v=999;inp.value=v;
+}
+
+// ── Terapkan hasil ke form Catat (reuse selPrints + addPrint yang sudah ada) ──
+function applyPdfResult(){
+  let bw,clr;
+  if(_pdfMode==='docx'){
+    bw=_pdfManualTotal-_pdfManualColor;clr=_pdfManualColor;
+  } else {
+    clr=_pdfPages.filter(p=>p.isColor).length;
+    bw=_pdfPages.length-clr;
+  }
+  const copies=Math.max(1,parseInt(document.getElementById('pdfCopies').value)||1);
+  bw*=copies;clr*=copies;
+  if(bw<=0&&clr<=0){showToast('⚠ Tidak ada halaman untuk diterapkan');return;}
+
+  // Reset pilihan jenis cetak yang mungkin sudah aktif sebelumnya, supaya
+  // hasil dari file ini tidak tercampur tanpa sengaja dengan pilihan manual lama
+  selPrints.forEach(data=>{
+    data.el.classList.remove('s-bw','s-clr','s-photo');
+    if(data.el.dataset.cc==='photo')data.el.classList.add('lock');
+  });
+  selPrints.clear();
+
+  const paper=_pdfPaperSize;
+  if(bw>0){
+    const key=paper+'-BW';
+    const el=document.querySelector(`#pg-input .pc[data-key="${key}"]`);
+    if(el){el.classList.remove('lock');el.classList.add('s-bw');selPrints.set(key,{el,qty:bw});}
+  }
+  if(clr>0){
+    const key=paper+'-CLR';
+    const el=document.querySelector(`#pg-input .pc[data-key="${key}"]`);
+    if(el){el.classList.remove('lock');el.classList.add('s-clr');selPrints.set(key,{el,qty:clr});}
+  }
+  renderQtyRows();valAddBtn();upp();
+
+  const noteEl=document.getElementById('noteIn');
+  if(noteEl&&!noteEl.value.trim())noteEl.value='File: '+_pdfFileName;
+
+  closePdfAnalyzer();
+  const parts=[];if(bw>0)parts.push(bw+' B&W');if(clr>0)parts.push(clr+' Warna');
+  showToast('✓ Diterapkan: '+parts.join(' + ')+' — pilih customer & tambahkan');
+  document.getElementById('pg-input').scrollIntoView({behavior:'smooth',block:'center'});
+}
 
 // ── Paste (Ctrl+V) ──
 document.addEventListener('paste',function(e){
